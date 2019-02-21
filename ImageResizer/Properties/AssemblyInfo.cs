@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("ImageResizer")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Библиотека для увеличения/уменьшения")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("ImageResizer")]
-[assembly: AssemblyCopyright("Copyright ©  2018")]
+[assembly: AssemblyCopyright("Copyright © 2018 by Andrew Slusarev")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
