@@ -3,20 +3,18 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Net;
-using System.Runtime.InteropServices;
-
 
 namespace ImageResizer
 {
     public static class ImageBuilder
     {
+        private const string LoadFailureReasons = "Файл не является изображением, может быть поврежден, пуст или может содержать изображение в формате PNG, размер которого превышает 65 535 пикселей";
         public static Bitmap LoadImage(object source)
         {
             if (source == null) throw new ArgumentNullException("source", "Источник не может быть пустым");
 
             Bitmap bitmap = null;
-            string path = null;
-            string loadFailureReasons = "Файл может быть поврежден, пуст или может содержать изображение в формате PNG, размер которого превышает 65 535 пикселей";
+            
 
             //Bitmap
             if (source is Bitmap) return source as Bitmap;
@@ -24,33 +22,16 @@ namespace ImageResizer
             if (source is System.Drawing.Image)
                 return new Bitmap((System.Drawing.Image)source); //Note, this clones just the raw bitmap data - doesn't copy attributes, bit depth, or anything.
 
-            Stream stream = GetStreamFromSource(source, out path);
+            Stream stream = GetStreamFromSource(source, out string path);
             if (stream == null) throw new ArgumentException("Источник может быть только string, Bitmap, Image, Stream.", "source");
 
             try
             {
-                try
-                {
-                    bitmap = DecodeStream(stream, path);
-                    if (bitmap == null) throw new ImageCorruptedException("Ошибка чтения изображения. Поток вернул null.", null);
-                }
-                catch (Exception ex)
-                {
-                    if (!stream.CanSeek)
-                        throw new ImageCorruptedException("Cannot attempt fallback decoding path on a non-seekable stream", ex);
-                }
-
+                bitmap = DecodeStream(stream, path);
             }
-            catch (ArgumentException ae)
+            catch (ArgumentException ex)
             {
-                ae.Data.Add("path", path);
-                throw new ImageCorruptedException(loadFailureReasons, ae);
-            }
-            catch (ExternalException ee)
-            {
-                ee.Data.Add("path", path);
-                throw new ImageCorruptedException(loadFailureReasons, ee);
-
+                throw new ImageCorruptedException(LoadFailureReasons, ex);
             }
             finally
             {
@@ -67,34 +48,46 @@ namespace ImageResizer
                 //Make sure the bitmap is tagged with its path. DecodeStream usually handles this, only relevant for extension decoders.
                 if (bitmap != null && bitmap.Tag == null && path != null) bitmap.Tag = new BitmapTag(path);
             }
-            return bitmap;
+
+            if (bitmap == null) throw new ImageCorruptedException("Ошибка чтения изображения. Поток вернул null.", null);
+
+            return bitmap;          
+            
         }
         private static Stream GetStreamFromSource(Uri requestUri)
         {
-            WebRequest request = WebRequest.Create(requestUri);
-            Stream stream = null;
-            using (WebResponse response = request.GetResponse())
+            
+            try
             {
-                stream = response.GetResponseStream();
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(requestUri);
+                HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+                return response.GetResponseStream();
             }
-            return stream;
+            catch (WebException webex)
+            {
+                using (HttpWebResponse response = (HttpWebResponse)webex.Response)
+                {
+                    if ((int)response.StatusCode >= 300 && (int)response.StatusCode <= 399)
+                    {
+                        var uriString = response.Headers["Location"];
+                        return GetStreamFromSource(new Uri(uriString));
+                    }
+                    throw;
+                }
+            }      
         }
         private static Stream GetStreamFromSource(string imagePath)
-        {
-            Stream stream = null;
+        {            
+            if (IsValidUri(imagePath, out Uri requestUri))
+            {
+                return GetStreamFromSource(requestUri);
+            }
+
             if (File.Exists(imagePath))
             {
-                stream = File.Open(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            }            
-            else
-            {
-                Uri requestUri;
-                if (Uri.TryCreate(imagePath, UriKind.Absolute, out requestUri))
-                {
-                    stream = GetStreamFromSource(requestUri);
-                }
+                return File.Open(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             }
-            return stream;
+            return null;
         }
         private static Stream GetStreamFromSource(object source, out string path)
         {
@@ -112,11 +105,16 @@ namespace ImageResizer
                 path = (string)source;
                 stream = GetStreamFromSource(path);
             }
+            else if (source is Uri)
+            {
+                Uri u = source as Uri;
+                path = u.Scheme == Uri.UriSchemeFile ? u.LocalPath : u.AbsolutePath;
+                stream = GetStreamFromSource(u);
+            }
             else if (source is byte[])
             {
                 stream = new MemoryStream((byte[])source, 0, ((byte[])source).Length, false, true);
             }
-
             try
             {
                 if (stream != null && stream.Length == 0)
@@ -130,12 +128,11 @@ namespace ImageResizer
         }
         private static Bitmap DecodeStream(Stream s, string optionalPath)
         {
-            Bitmap b = null;
-            bool useICM = true;            
+            const bool useICM = true;            
 
             //May 24, 2011 - Copying stream into memory so the original can be closed safely.
             MemoryStream memoryStream = s.CopyToMemoryStream();
-            b = new Bitmap(memoryStream, useICM);
+            Bitmap b = new Bitmap(memoryStream, useICM);
             //May 25, 2011: Storing a ref to the MemorySteam so it won't accidentally be garbage collected.
             b.Tag = new BitmapTag(optionalPath, memoryStream); 
             return b;
@@ -209,6 +206,14 @@ namespace ImageResizer
 
             if (encoder == null) throw new ImageProcessingException("No image encoder was found for this request.");
             encoder.Write(image, dest);
+        }
+        private static bool IsValidUri(string s, out Uri uri)
+        {           
+            bool result = Uri.TryCreate(s, UriKind.Absolute, out uri) &&
+                (uri.Scheme == Uri.UriSchemeHttp ||
+                 uri.Scheme == Uri.UriSchemeHttps ||
+                 uri.Scheme == Uri.UriSchemeFtp);
+            return result;
         }
     }
 }
