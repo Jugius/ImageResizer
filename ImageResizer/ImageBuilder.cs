@@ -65,15 +65,17 @@ namespace ImageResizer
             }
             catch (WebException webex)
             {
-                HttpWebResponse response = (HttpWebResponse)webex.Response;
-                if ((int)response.StatusCode >= 300 && (int)response.StatusCode <= 399)
+                if (webex.Response is HttpWebResponse response)
                 {
-                    using (response)
+                    if ((int)response.StatusCode >= 300 && (int)response.StatusCode <= 399)
                     {
-                        var uriString = response.Headers["Location"];
-                        return GetStreamFromSource(new Uri(uriString));
+                        using (response)
+                        {
+                            var uriString = response.Headers["Location"];
+                            return GetStreamFromSource(new Uri(uriString));
+                        }
                     }
-                }
+                }                
                 throw;
             }      
         }
