@@ -8,10 +8,11 @@ namespace ImageResizer
     public class ImageInfo : IDisposable
     {
         public Bitmap SourceBitmap { get; }
+        public string SourcePath { get; }
+        public string SourceExtention => ImageEncoder.GetExtensionFromImageFormat(SourceBitmap.RawFormat);
         public Bitmap DestinationBitmap { get { return destinationBitmap; } }
         private Bitmap destinationBitmap = null;
-        public string SourcePath { get; }
-        public string SourceExtention { get; }
+       
         internal ImageInfo(Bitmap bitmap)
         {
             if (bitmap == null)
@@ -21,8 +22,6 @@ namespace ImageResizer
 
             if (bitmap.Tag != null && bitmap.Tag is BitmapTag)
                 this.SourcePath = (bitmap.Tag as BitmapTag).Path;
-
-            this.SourceExtention = ImageEncoder.GetExtensionFromImageFormat(bitmap.RawFormat);
         }
         public Bitmap ResizeImage(ResizeSettings settings)
         {
