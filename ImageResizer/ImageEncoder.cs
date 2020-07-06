@@ -23,25 +23,6 @@ namespace ImageResizer
             this.OutputFormat = outputFormat;
             this.Quality = jpegQuality;
         }
-        //public ImageEncoder(object original)
-        //{
-        //    ImageFormat originalFormat = GetOriginalFormat(original);
-
-        //    if (!IsValidOutputFormat(originalFormat))
-        //    {
-        //        this.OutputFormat = ImageFormat.Jpeg;
-        //        this.Quality = 90;
-        //    }
-        //    else
-        //    {
-        //        this.OutputFormat = originalFormat;
-        //        if (ImageFormat.Jpeg.Equals(originalFormat))
-        //        {
-        //            this.Quality = 100;
-        //        }
-        //    }
-        //}
-
         /// <summary>
         /// If you set this to anything other than 'Gif', 'Png', or 'Jpeg', it will throw an exception. Defaults to 'Jpeg'.
         /// </summary>
@@ -59,11 +40,11 @@ namespace ImageResizer
         /// <summary>
         /// Returns true if the this encoder supports the specified image format
         /// </summary>
-        /// <param name="f"></param>
+        /// <param name="format"></param>
         /// <returns></returns>
-        public bool IsValidOutputFormat(ImageFormat f)
+        public bool IsValidOutputFormat(ImageFormat format)
         {
-            return (ImageFormat.Gif.Equals(f) || ImageFormat.Png.Equals(f) || ImageFormat.Jpeg.Equals(f));
+            return (ImageFormat.Gif.Equals(format) || ImageFormat.Png.Equals(format) || ImageFormat.Jpeg.Equals(format));
         }
 
         /// <summary>
@@ -75,13 +56,17 @@ namespace ImageResizer
         /// Writes the specified image to the stream using Quality and OutputFormat
         /// </summary>
         /// <param name="image"></param>
-        /// <param name="s"></param>
-        public void Write(Image image, System.IO.Stream s)
+        /// <param name="stream"></param>
+        public void Write(Image image, System.IO.Stream stream)
         {
-            if (ImageFormat.Jpeg.Equals(OutputFormat)) SaveJpeg(image, s, this.Quality);
-            else if (ImageFormat.Png.Equals(OutputFormat)) SavePng(image, s);
-            else if (ImageFormat.Gif.Equals(OutputFormat)) SaveGif(image, s);
+            // If image format equals OutputFormat then we do not need format converting and just saving image to stream as byte array
+            // This will help in some cases to avoid the error of Windows "GDI+ common error"
+            if (ImageFormat.Jpeg.Equals(OutputFormat)) SaveJpeg(image, stream, this.Quality);
+            else if (ImageFormat.Png.Equals(OutputFormat)) SavePng(image, stream);
+            else if (ImageFormat.Gif.Equals(OutputFormat)) SaveGif(image, stream);
         }
+
+        
 
         /// <summary>
         /// Returns true if the desired output type supports transparency.
@@ -306,24 +291,22 @@ namespace ImageResizer
             if (quality < 0) quality = 90; //90 is a very good default to stick with.
             if (quality > 100) quality = 100;
             //Prepare parameter for encoder
-
-            if (quality==100)
+            if (quality == 100)
             {
-                image.Save(target, ImageFormat.Jpeg);                
+                image.Save(target, ImageFormat.Jpeg);
             }
             else
             {
-                using (EncoderParameters p = new EncoderParameters(1))
+                using (EncoderParameters encoderParameters = new EncoderParameters(1))
                 {
                     using (var ep = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, (long)quality))
                     {
-                        p.Param[0] = ep;
-                        //save
-                        image.Save(target, GetImageCodeInfo(ImageFormat.Jpeg), p);
+                        encoderParameters.Param[0] = ep;
+                        image.Save(target, GetImageCodeInfo(ImageFormat.Jpeg), encoderParameters);
                     }
+
                 }
             }
-            
         }
 
         /// <summary>
