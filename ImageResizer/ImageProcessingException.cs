@@ -27,22 +27,4 @@ namespace ImageResizer
     {
         public ImageCorruptedException(string message, Exception innerException) : base(message, message, innerException) { }
     }
-    /// <summary>
-    /// Исходный файл не найден или отсутствует
-    /// </summary>
-    public class ImageMissingException : ImageProcessingException
-    {
-        public ImageMissingException(string message) : base(message) { }
-
-
-        public ImageMissingException(string message, string safeMessage)
-            : base(message, safeMessage)
-        {
-        }
-
-        public ImageMissingException(string message, string safeMessage, Exception innerException)
-            : base(message, safeMessage, innerException)
-        {
-        }
-    }
-}
+ }
