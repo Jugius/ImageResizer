@@ -65,15 +65,16 @@ namespace ImageResizer
             }
             catch (WebException webex)
             {
-                using (HttpWebResponse response = (HttpWebResponse)webex.Response)
+                HttpWebResponse response = (HttpWebResponse)webex.Response;
+                if ((int)response.StatusCode >= 300 && (int)response.StatusCode <= 399)
                 {
-                    if ((int)response.StatusCode >= 300 && (int)response.StatusCode <= 399)
+                    using (response)
                     {
                         var uriString = response.Headers["Location"];
                         return GetStreamFromSource(new Uri(uriString));
                     }
-                    throw;
                 }
+                throw;
             }      
         }
         private static Stream GetStreamFromSource(string imagePath)
