@@ -1,23 +1,23 @@
 ﻿using System;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
 
 namespace ImageResizer
 {
     public class ImageInfo : IDisposable
     {
-        public Bitmap SourceBitmap { get { return sourceBitmap; } }
-        private Bitmap sourceBitmap;
+        public Bitmap SourceBitmap { get; }
         public Bitmap DestinationBitmap { get { return destinationBitmap; } }
         private Bitmap destinationBitmap = null;
-        string SourcePath { get; }
-        string SourceExtention { get; }
+        public string SourcePath { get; }
+        public string SourceExtention { get; }
         internal ImageInfo(Bitmap bitmap)
         {
             if (bitmap == null)
                 throw new ArgumentNullException("Значение Null Bitmap при создании экземпляра ImageInfo");
 
-            this.sourceBitmap = bitmap;
+            this.SourceBitmap = bitmap;
 
             if (bitmap.Tag != null && bitmap.Tag is BitmapTag)
                 this.SourcePath = (bitmap.Tag as BitmapTag).Path;
@@ -32,8 +32,10 @@ namespace ImageResizer
         public void Save() => this.SaveAs(this.SourcePath);
         public void SaveAs(string fileName)
         {
+            string ext = System.IO.Path.GetExtension(fileName);
+            var imageFormat =  ImageEncoder.GetImageFormatFromExtension(ext);
             Bitmap bitmap = GetFinalBitmapForSave();
-            this.SaveAs(fileName, bitmap.RawFormat);
+            this.SaveAs(fileName, imageFormat);
         }
         public void SaveAs(string fileName, ImageFormat imageFormat)
         {
@@ -53,8 +55,28 @@ namespace ImageResizer
             {
                 ImageBuilder.SaveImage(bitmap, fileName, imageFormat, 100);
             }            
-        }   
-             
+        }
+        public void SaveAs(Stream stream, ImageFormat imageFormat)
+        {
+            if (imageFormat == null)
+                throw new ArgumentNullException("ImageFormat");
+
+            Bitmap bitmap = GetFinalBitmapForSave();
+
+            if (ImageFormat.Jpeg.Equals(imageFormat))
+            {
+                if (imageFormat.Equals(bitmap.RawFormat))
+                    this.SaveAs(stream, imageFormat, 100);
+                else
+                    this.SaveAs(stream, imageFormat, 90);
+            }
+            else
+            {
+                ImageBuilder.SaveImage(bitmap, stream, imageFormat, 100);
+            }
+        }
+
+
         public void SaveAs(string fileName, ImageFormat imageFormat, int jpegQuality)
         {
             if(string.IsNullOrEmpty(fileName))
@@ -69,6 +91,21 @@ namespace ImageResizer
             Bitmap bitmap = GetFinalBitmapForSave();
 
             ImageBuilder.SaveImage(bitmap, fileName, imageFormat, jpegQuality);
+        }
+        public void SaveAs(Stream stream, ImageFormat imageFormat, int jpegQuality)
+        {
+            if (stream == null)
+                throw new ArgumentNullException("stream");
+
+            if (imageFormat == null)
+                throw new ArgumentNullException("ImageFormat");
+
+            if (jpegQuality < 10 || jpegQuality > 100)
+                throw new ArgumentException("Качество изображения может быть в диапазоне 10 - 100");
+
+            Bitmap bitmap = GetFinalBitmapForSave();
+
+            ImageBuilder.SaveImage(bitmap, stream, imageFormat, jpegQuality);
         }
         private Bitmap GetFinalBitmapForSave() => this.DestinationBitmap ?? this.SourceBitmap;
         public bool ResultHasEqualSize()
@@ -92,8 +129,7 @@ namespace ImageResizer
             Bitmap bitmap = ImageBuilder.LoadImage(source);
             return new ImageInfo(bitmap);
         }
-        public static ImageInfo Build(string path) => Build(path as object);
-        public static ImageInfo Build(Uri uri) => Build(uri as object);
+        public static ImageInfo Build(string path) => Build(path as object);        
         #endregion
 
         #region Disposing
@@ -104,14 +140,14 @@ namespace ImageResizer
 
             try
             {
-                if (sourceBitmap != null)
+                if (SourceBitmap != null)
                 {
-                    if (sourceBitmap.Tag != null && sourceBitmap.Tag is BitmapTag)
+                    if (SourceBitmap.Tag != null && SourceBitmap.Tag is BitmapTag)
                     {
-                        System.IO.Stream s = ((BitmapTag)sourceBitmap.Tag).Source;
+                        System.IO.Stream s = ((BitmapTag)SourceBitmap.Tag).Source;
                         if (s != null) s.Dispose();
                     }
-                    sourceBitmap.Dispose();
+                    SourceBitmap.Dispose();
                 }
             }
             finally {
