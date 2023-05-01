@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("ImageResizer")]
 [assembly: AssemblyDescription("Библиотека для увеличения/уменьшения")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("OoHelp.net")]
 [assembly: AssemblyProduct("ImageResizer")]
-[assembly: AssemblyCopyright("Copyright © 2018 by Andrew Slusarev")]
+[assembly: AssemblyCopyright("© 2023 by Andrew Slusarev")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
