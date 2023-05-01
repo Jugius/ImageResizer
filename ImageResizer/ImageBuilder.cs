@@ -14,13 +14,14 @@ namespace ImageResizer
             if (source == null) throw new ArgumentNullException("source", "Источник не может быть пустым");
 
             Bitmap bitmap = null;
-            
+
 
             //Bitmap
-            if (source is Bitmap) return source as Bitmap;
+            if (source is Bitmap bmp) return bmp;
+
             //Image
-            if (source is System.Drawing.Image)
-                return new Bitmap((System.Drawing.Image)source); //Note, this clones just the raw bitmap data - doesn't copy attributes, bit depth, or anything.
+            if (source is System.Drawing.Image img)
+                return new Bitmap(img); //Note, this clones just the raw bitmap data - doesn't copy attributes, bit depth, or anything.
 
             Stream stream = GetStreamFromSource(source, out string path);
             if (stream == null) throw new ArgumentException("Источник может быть только string, Bitmap, Image, Stream.", "source");
@@ -51,12 +52,11 @@ namespace ImageResizer
 
             if (bitmap == null) throw new ImageCorruptedException("Ошибка чтения изображения. Поток вернул null.", null);
 
-            return bitmap;          
-            
+            return bitmap;
+
         }
         private static Stream GetStreamFromSource(Uri requestUri)
         {
-            
             try
             {
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(requestUri);
@@ -67,7 +67,8 @@ namespace ImageResizer
             {
                 if (webex.Response is HttpWebResponse response)
                 {
-                    if ((int)response.StatusCode >= 300 && (int)response.StatusCode <= 399)
+                    int statusCode = (int)response.StatusCode;
+                    if (statusCode >= 300 && statusCode <= 399)
                     {
                         using (response)
                         {
@@ -75,12 +76,12 @@ namespace ImageResizer
                             return GetStreamFromSource(new Uri(uriString));
                         }
                     }
-                }                
+                }
                 throw;
-            }      
+            }
         }
         private static Stream GetStreamFromSource(string imagePath)
-        {            
+        {
             if (IsValidUri(imagePath, out Uri requestUri))
             {
                 return GetStreamFromSource(requestUri);
@@ -96,27 +97,25 @@ namespace ImageResizer
         {
             if (source == null) throw new ArgumentNullException("source", "Источник не может быть пустым");
 
-            Stream stream = null; 
+            Stream stream = null;
             path = null;
 
             if (source is Stream)
             {
                 stream = (Stream)source;
             }
-            else if (source is string)
+            else if (source is string str)
             {
-                path = (string)source;
-                stream = GetStreamFromSource(path);
+                stream = GetStreamFromSource(str);
             }
-            else if (source is Uri)
+            else if (source is Uri u)
             {
-                Uri u = source as Uri;
                 path = u.Scheme == Uri.UriSchemeFile ? u.LocalPath : u.AbsolutePath;
                 stream = GetStreamFromSource(u);
             }
-            else if (source is byte[])
+            else if (source is byte[] bytes)
             {
-                stream = new MemoryStream((byte[])source, 0, ((byte[])source).Length, false, true);
+                stream = new MemoryStream(bytes, 0, bytes.Length, false, true);
             }
             try
             {
@@ -127,26 +126,26 @@ namespace ImageResizer
             {
             }
 
-            return stream;  
+            return stream;
         }
         private static Bitmap DecodeStream(Stream s, string optionalPath)
         {
-            const bool useICM = true;            
+            const bool useICM = true;
 
             //May 24, 2011 - Copying stream into memory so the original can be closed safely.
             MemoryStream memoryStream = s.CopyToMemoryStream();
             Bitmap b = new Bitmap(memoryStream, useICM);
             //May 25, 2011: Storing a ref to the MemorySteam so it won't accidentally be garbage collected.
-            b.Tag = new BitmapTag(optionalPath, memoryStream); 
+            b.Tag = new BitmapTag(optionalPath, memoryStream);
             return b;
         }
-            /// <summary>
-            /// Сохраняет изображение в файл или поток
-            /// </summary>
-            /// <param name="image">Изображение для сохранения</param>
-            /// <param name="destination">Путь к файлу или поток, куда необходимо записать изображение</param>
-            /// <param name="imageFormat">Формат изображения. Может быть jpeg, gif, png</param>
-            /// <param name="jpegQuality">Качество изображения для jpeg в диапазоне 10-100. Игнорируется при других форматах. Оптимальным считается 90</param>
+        /// <summary>
+        /// Сохраняет изображение в файл или поток
+        /// </summary>
+        /// <param name="image">Изображение для сохранения</param>
+        /// <param name="destination">Путь к файлу или поток, куда необходимо записать изображение</param>
+        /// <param name="imageFormat">Формат изображения. Может быть jpeg, gif, png</param>
+        /// <param name="jpegQuality">Качество изображения для jpeg в диапазоне 10-100. Игнорируется при других форматах. Оптимальным считается 90</param>
         public static void SaveImage(Image image, object destination, ImageFormat imageFormat, int jpegQuality)
         {
             if (image == null)
@@ -154,7 +153,7 @@ namespace ImageResizer
 
             // Определяем imageFormat изображения
             ImageFormat format = imageFormat;
-            if (format==null)
+            if (format == null)
             {
                 if (destination is string)
                 {
@@ -211,7 +210,7 @@ namespace ImageResizer
             encoder.Write(image, dest);
         }
         private static bool IsValidUri(string s, out Uri uri)
-        {           
+        {
             bool result = Uri.TryCreate(s, UriKind.Absolute, out uri) &&
                 (uri.Scheme == Uri.UriSchemeHttp ||
                  uri.Scheme == Uri.UriSchemeHttps ||

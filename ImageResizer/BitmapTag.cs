@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
+﻿using System.IO;
 
 namespace ImageResizer
 {
@@ -11,11 +7,11 @@ namespace ImageResizer
 
         public BitmapTag(object tag)
         {
-            if (tag is string) _path = (string)tag;
-            if (tag is BitmapTag)
+            if (tag is string str) _path = str;
+            if (tag is BitmapTag bTag)
             {
-                _path = ((BitmapTag)tag).Path;
-                _source = ((BitmapTag)tag).Source;
+                _path = bTag.Path;
+                _source = bTag.Source;
             }
         }
 

@@ -7,16 +7,21 @@ namespace ImageResizer
 {
     public class ImageInfo : IDisposable
     {
+        private const string ErrorMessage_JpegQualityIsOutOfRange = "Качество изображения может быть в диапазоне 10 - 100";
+        private const string ErrorMessage_BitmapIsNullInImageInfo = "Значение Null Bitmap при создании экземпляра ImageInfo";
+        private const string ErrorMessage_NoResultBitmap = "Результирующее изображение отсутствует";
+
+
         public Bitmap SourceBitmap { get; }
         public string SourcePath { get; }
         public string SourceExtention => ImageEncoder.GetExtensionFromImageFormat(SourceBitmap.RawFormat);
         public Bitmap DestinationBitmap { get { return destinationBitmap; } }
         private Bitmap destinationBitmap = null;
-       
+
         internal ImageInfo(Bitmap bitmap)
         {
             if (bitmap == null)
-                throw new ArgumentNullException("Значение Null Bitmap при создании экземпляра ImageInfo");
+                throw new ArgumentNullException(ErrorMessage_BitmapIsNullInImageInfo);
 
             this.SourceBitmap = bitmap;
 
@@ -32,14 +37,14 @@ namespace ImageResizer
         public void SaveAs(string fileName)
         {
             string ext = System.IO.Path.GetExtension(fileName);
-            var imageFormat =  ImageEncoder.GetImageFormatFromExtension(ext);
+            var imageFormat = ImageEncoder.GetImageFormatFromExtension(ext);
             Bitmap bitmap = GetFinalBitmapForSave();
             this.SaveAs(fileName, imageFormat);
         }
         public void SaveAs(string fileName, ImageFormat imageFormat)
         {
             if (imageFormat == null)
-                throw new ArgumentNullException("ImageFormat");
+                throw new ArgumentNullException(nameof(imageFormat));
 
             Bitmap bitmap = GetFinalBitmapForSave();
 
@@ -50,15 +55,15 @@ namespace ImageResizer
                 else
                     this.SaveAs(fileName, imageFormat, 90);
             }
-            else               
+            else
             {
                 ImageBuilder.SaveImage(bitmap, fileName, imageFormat, 100);
-            }            
+            }
         }
         public void SaveAs(Stream stream, ImageFormat imageFormat)
         {
             if (imageFormat == null)
-                throw new ArgumentNullException("ImageFormat");
+                throw new ArgumentNullException(nameof(imageFormat));
 
             Bitmap bitmap = GetFinalBitmapForSave();
 
@@ -76,16 +81,17 @@ namespace ImageResizer
         }
 
 
+
         public void SaveAs(string fileName, ImageFormat imageFormat, int jpegQuality)
         {
-            if(string.IsNullOrEmpty(fileName))
-                throw new ArgumentNullException("FileName");
+            if (string.IsNullOrEmpty(fileName))
+                throw new ArgumentNullException(nameof(fileName));
 
             if (imageFormat == null)
-                throw new ArgumentNullException("ImageFormat");
+                throw new ArgumentNullException(nameof(imageFormat));
 
             if (jpegQuality < 10 || jpegQuality > 100)
-                throw new ArgumentException("Качество изображения может быть в диапазоне 10 - 100");
+                throw new ArgumentOutOfRangeException(ErrorMessage_JpegQualityIsOutOfRange);
 
             Bitmap bitmap = GetFinalBitmapForSave();
 
@@ -94,13 +100,13 @@ namespace ImageResizer
         public void SaveAs(Stream stream, ImageFormat imageFormat, int jpegQuality)
         {
             if (stream == null)
-                throw new ArgumentNullException("stream");
+                throw new ArgumentNullException(nameof(stream));
 
             if (imageFormat == null)
-                throw new ArgumentNullException("ImageFormat");
+                throw new ArgumentNullException(nameof(imageFormat));
 
             if (jpegQuality < 10 || jpegQuality > 100)
-                throw new ArgumentException("Качество изображения может быть в диапазоне 10 - 100");
+                throw new ArgumentOutOfRangeException(ErrorMessage_JpegQualityIsOutOfRange);
 
             Bitmap bitmap = GetFinalBitmapForSave();
 
@@ -110,7 +116,7 @@ namespace ImageResizer
         public bool ResultHasEqualSize()
         {
             if (DestinationBitmap == null)
-                throw new Exception("Результирующее изображение отсутствует");
+                throw new Exception(ErrorMessage_NoResultBitmap);
 
             if (DestinationBitmap == SourceBitmap) return true;
 
@@ -128,7 +134,7 @@ namespace ImageResizer
             Bitmap bitmap = ImageBuilder.LoadImage(source);
             return new ImageInfo(bitmap);
         }
-        public static ImageInfo Build(string path) => Build(path as object);        
+        public static ImageInfo Build(string path) => Build(path as object);
         #endregion
 
         #region Disposing
@@ -149,13 +155,14 @@ namespace ImageResizer
                     SourceBitmap.Dispose();
                 }
             }
-            finally {
+            finally
+            {
                 if (destinationBitmap != null) destinationBitmap.Dispose();
             }
             iDisposed = true;
             GC.SuppressFinalize(this);
         }
         #endregion
-       
+
     }
 }
