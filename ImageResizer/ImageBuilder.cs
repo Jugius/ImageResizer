@@ -58,7 +58,16 @@ namespace ImageResizer
         private static Stream GetStreamFromSource(Uri requestUri)
         {
             if (requestUri.Scheme == Uri.UriSchemeFile)
-                return GetStreamFromSource(requestUri.LocalPath);
+            {
+                if (File.Exists(requestUri.LocalPath))
+                {
+                    return File.Open(requestUri.LocalPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                }
+                else
+                {
+                    throw new FileNotFoundException($"Файл не найден: {requestUri.LocalPath}.");
+                }                
+            }                
 
             try
             {
