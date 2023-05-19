@@ -57,6 +57,9 @@ namespace ImageResizer
         }
         private static Stream GetStreamFromSource(Uri requestUri)
         {
+            if (requestUri.Scheme == Uri.UriSchemeFile)
+                return GetStreamFromSource(requestUri.LocalPath);
+
             try
             {
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(requestUri);
@@ -106,6 +109,7 @@ namespace ImageResizer
             }
             else if (source is string str)
             {
+                path = str;
                 stream = GetStreamFromSource(str);
             }
             else if (source is Uri u)
